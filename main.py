@@ -7,7 +7,9 @@
 import argparse
 import os
 import pickle
+import sys
 import time
+import warnings
 
 import faiss
 import numpy as np
@@ -24,6 +26,13 @@ import torchvision.datasets as datasets
 import clustering
 import models
 from util import AverageMeter, Logger, UnifLabelSampler
+
+if not sys.warnoptions:
+    # suppress pesky PIL EXIF warnings and numpy warnings
+    warnings.simplefilter("once")
+    warnings.filterwarnings("ignore", message="(Possibly )?corrupt EXIF data.*")
+    warnings.filterwarnings("ignore", message="numpy.dtype size changed.*")
+    warnings.filterwarnings("ignore", message="numpy.ufunc size changed.*")
 
 
 parser = argparse.ArgumentParser(description='PyTorch Implementation of DeepCluster')
@@ -293,7 +302,8 @@ def compute_features(dataloader, model, N):
     model.eval()
     # discard the label information in the dataloader
     for i, (input_tensor, _) in enumerate(dataloader):
-        input_var = torch.autograd.Variable(input_tensor.cuda(), volatile=True)
+        with torch.no_grad():
+            input_var = torch.autograd.Variable(input_tensor.cuda(), volatile=True)
         aux = model(input_var).data.cpu().numpy()
 
         if i == 0:
